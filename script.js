@@ -10,9 +10,9 @@ let appConfig = null;
 const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
 
 // ================================================================
-// INITIALIZATION — โหลดหน้าเว็บ
+// INITIALIZATION
 // ================================================================
-document.addEventListener('DOMContentLoaded', function () {
+document.addEventListener('DOMContentLoaded', function() {
     initTabs();
     initFileUploads();
     initForm();
@@ -23,30 +23,26 @@ document.addEventListener('DOMContentLoaded', function () {
 // TAB SWITCHING
 // ================================================================
 function initTabs() {
-    document.querySelectorAll('.tab-btn').forEach(function (btn) {
-        btn.addEventListener('click', function () {
-            // ลบ active ทั้งหมด
-            document.querySelectorAll('.tab-btn').forEach(function (b) {
+    document.querySelectorAll('.tab-btn').forEach(function(btn) {
+        btn.addEventListener('click', function() {
+            document.querySelectorAll('.tab-btn').forEach(function(b) {
                 b.classList.remove('active');
             });
-            document.querySelectorAll('.tab-content').forEach(function (t) {
+            document.querySelectorAll('.tab-content').forEach(function(t) {
                 t.classList.remove('active');
             });
-            // เพิ่ม active ที่กด
             btn.classList.add('active');
-            var tabId = btn.getAttribute('data-tab');
-            document.getElementById(tabId).classList.add('active');
+            document.getElementById(btn.getAttribute('data-tab')).classList.add('active');
         });
     });
 }
 
 // ================================================================
-// LOAD CONFIG จาก Apps Script
+// LOAD CONFIG
 // ================================================================
 async function loadConfig() {
     try {
-        var url = APPS_SCRIPT_URL + '?action=getConfig';
-        var response = await fetch(url);
+        var response = await fetch(APPS_SCRIPT_URL + '?action=getConfig');
         var result = await response.json();
 
         if (!result.success) {
@@ -60,30 +56,25 @@ async function loadConfig() {
         console.error('loadConfig error:', error);
         showToast('❌ ไม่สามารถโหลดข้อมูลได้: ' + error.message, 'error');
     } finally {
-        // ซ่อน loading แสดง container
         document.getElementById('loadingScreen').style.display = 'none';
         document.getElementById('mainContainer').style.display = 'block';
     }
 }
 
 function renderConfig(config) {
-    // ชื่อโครงการ
     document.getElementById('projectName').textContent = config.projectName || 'ระบบรับสมัคร';
     document.title = config.projectName || 'ระบบรับสมัคร';
 
-    // สถิติ
     document.getElementById('statRegistered').textContent = config.registered;
     document.getElementById('statRemaining').textContent = config.remaining;
     document.getElementById('statMax').textContent = config.maxSeats;
 
-    // Progress bar
     var percent = config.maxSeats > 0
         ? Math.round((config.registered / config.maxSeats) * 100)
         : 0;
     document.getElementById('progressBar').style.width = percent + '%';
     document.getElementById('progressText').textContent = 'สมัครแล้ว ' + percent + '%';
 
-    // ข้อมูลชำระเงิน
     if (config.fee || config.bankName) {
         document.getElementById('feeInfoBox').style.display = 'block';
         document.getElementById('infoFee').textContent = config.fee || '-';
@@ -92,7 +83,6 @@ function renderConfig(config) {
         document.getElementById('infoAccountName').textContent = config.accountName || '-';
     }
 
-    // เปิด/ปิดฟอร์ม
     if (config.isOpen) {
         document.getElementById('registrationForm').style.display = 'block';
         document.getElementById('closedBox').style.display = 'none';
@@ -103,7 +93,7 @@ function renderConfig(config) {
 }
 
 // ================================================================
-// FILE UPLOAD PREVIEW
+// FILE UPLOAD — แก้ Bug ตรงนี้!
 // ================================================================
 function initFileUploads() {
     setupFileInput('studentCard', 'studentCardPreview', 'studentCardPlaceholder', 'studentCardArea');
@@ -112,8 +102,11 @@ function initFileUploads() {
 
 function setupFileInput(inputId, previewId, placeholderId, areaId) {
     var input = document.getElementById(inputId);
-    input.addEventListener('change', function () {
-        var file = input.files;
+    if (!input) return;
+
+    input.addEventListener('change', function(e) {
+        // ===== แก้ Bug: ใช้ e.target.files =====
+        var file = e.target.files;
         if (!file) return;
 
         // เช็คขนาด
@@ -125,43 +118,55 @@ function setupFileInput(inputId, previewId, placeholderId, areaId) {
 
         // เช็คประเภท
         if (!file.type.startsWith('image/')) {
-            showToast('❌ กรุณาเลือกไฟล์รูปภาพเท่านั้น', 'error');
+            showToast('❌ กรุณาเลือกไฟล์รูปภาพเท่านั้น (JPG, PNG)', 'error');
             input.value = '';
             return;
         }
 
         // แสดง preview
         var reader = new FileReader();
-        reader.onload = function (e) {
+        reader.onload = function(ev) {
             var preview = document.getElementById(previewId);
-            preview.src = e.target.result;
-            preview.style.display = 'block';
-            document.getElementById(placeholderId).style.display = 'none';
-            document.getElementById(areaId).classList.add('has-file');
+            var placeholder = document.getElementById(placeholderId);
+            var area = document.getElementById(areaId);
+
+            if (preview) {
+                preview.src = ev.target.result;
+                preview.style.display = 'block';
+            }
+            if (placeholder) {
+                placeholder.style.display = 'none';
+            }
+            if (area) {
+                area.classList.add('has-file');
+            }
         };
-        reader.readAsDataURL(file);
+        reader.readAsDataURL(file);  // ✅ ส่ง file (Blob) ไม่ใช่ element
     });
 }
 
-// แปลงไฟล์เป็น Base64
-function fileToBase64(fileInput) {
-    return new Promise(function (resolve, reject) {
-        var file = fileInput.files;
-        if (!file) {
+// ===== แก้ Bug หลัก: แปลงไฟล์เป็น Base64 =====
+function fileToBase64(inputElement) {
+    return new Promise(function(resolve, reject) {
+        // ตรวจสอบว่ามีไฟล์จริง
+        if (!inputElement || !inputElement.files || !inputElement.files) {
             resolve({ base64: '', filename: '' });
             return;
         }
+
+        var file = inputElement.files;  // ✅ ดึง File object ออกมา
+
         var reader = new FileReader();
-        reader.onload = function () {
+        reader.onload = function() {
             resolve({
-                base64: reader.result,
+                base64: reader.result,    // data:image/jpeg;base64,/9j/4AAQ...
                 filename: file.name
             });
         };
-        reader.onerror = function () {
-            reject(new Error('อ่านไฟล์ไม่สำเร็จ'));
+        reader.onerror = function() {
+            reject(new Error('ไม่สามารถอ่านไฟล์ "' + file.name + '" ได้'));
         };
-        reader.readAsDataURL(file);
+        reader.readAsDataURL(file);  // ✅ ส่ง file (Blob) เข้า readAsDataURL
     });
 }
 
@@ -169,7 +174,10 @@ function fileToBase64(fileInput) {
 // FORM SUBMIT
 // ================================================================
 function initForm() {
-    document.getElementById('registrationForm').addEventListener('submit', handleSubmit);
+    var form = document.getElementById('registrationForm');
+    if (form) {
+        form.addEventListener('submit', handleSubmit);
+    }
 }
 
 async function handleSubmit(e) {
@@ -177,51 +185,62 @@ async function handleSubmit(e) {
 
     var submitBtn = document.getElementById('submitBtn');
 
-    // Validate
+    // ดึงค่าจากฟอร์ม
     var fullName = document.getElementById('fullName').value.trim();
-    var email = document.getElementById('email').value.trim();
-    var age = document.getElementById('age').value.trim();
-    var school = document.getElementById('school').value.trim();
+    var email    = document.getElementById('email').value.trim();
+    var age      = document.getElementById('age').value.trim();
+    var school   = document.getElementById('school').value.trim();
     var province = document.getElementById('province').value.trim();
-    var phone = document.getElementById('phone').value.trim();
+    var phone    = document.getElementById('phone').value.trim();
 
+    // ===== Validate =====
     if (!fullName || !email || !age || !school || !province || !phone) {
         showToast('❌ กรุณากรอกข้อมูลให้ครบทุกช่อง', 'error');
         return;
     }
 
-    // Validate phone
     if (!/^[0-9]{9,10}$/.test(phone)) {
         showToast('❌ เบอร์โทรไม่ถูกต้อง (ต้อง 9-10 หลัก)', 'error');
         return;
     }
 
-    // Validate files
+    // ตรวจไฟล์
     var studentCardInput = document.getElementById('studentCard');
     var slipInput = document.getElementById('slip');
 
-    if (!studentCardInput.files) {
+    if (!studentCardInput.files || !studentCardInput.files) {
         showToast('❌ กรุณาอัปโหลดรูปบัตรนักเรียน', 'error');
         return;
     }
-    if (!slipInput.files) {
+    if (!slipInput.files || !slipInput.files) {
         showToast('❌ กรุณาอัปโหลดรูปสลิปโอนเงิน', 'error');
         return;
     }
 
-    // แสดงสถานะกำลังส่ง
+    // ===== แสดงสถานะ =====
     submitBtn.disabled = true;
-    submitBtn.textContent = 'กำลังส่งข้อมูล...';
     submitBtn.classList.add('loading');
+    var originalText = submitBtn.textContent;
+    submitBtn.textContent = '';
 
     try {
-        // แปลงไฟล์เป็น Base64
-        showToast('📤 กำลังอัปโหลดไฟล์...', 'warning');
+        // Step 1: แปลงไฟล์เป็น Base64
+        showToast('📤 กำลังอัปโหลดรูปภาพ...', 'warning');
 
         var studentCardData = await fileToBase64(studentCardInput);
         var slipData = await fileToBase64(slipInput);
 
-        // สร้าง payload
+        // ตรวจสอบว่าได้ base64 จริง
+        if (!studentCardData.base64) {
+            showToast('❌ ไม่สามารถอ่านไฟล์บัตรนักเรียนได้', 'error');
+            return;
+        }
+        if (!slipData.base64) {
+            showToast('❌ ไม่สามารถอ่านไฟล์สลิปได้', 'error');
+            return;
+        }
+
+        // Step 2: สร้าง payload
         var payload = {
             action: 'register',
             fullName: fullName,
@@ -236,9 +255,9 @@ async function handleSubmit(e) {
             slipFilename: slipData.filename
         };
 
-        showToast('⏳ กำลังบันทึกข้อมูล...', 'warning');
+        // Step 3: ส่งข้อมูล
+        showToast('⏳ กำลังบันทึกข้อมูล อาจใช้เวลา 10-30 วินาที...', 'warning');
 
-        // ส่งไป Apps Script
         var response = await fetch(APPS_SCRIPT_URL, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -248,11 +267,9 @@ async function handleSubmit(e) {
         var result = await response.json();
 
         if (result.success) {
-            // สำเร็จ!
             showSuccessResult(result);
             showToast('✅ สมัครสำเร็จ!', 'success');
         } else {
-            // Error จาก server
             showToast('❌ ' + result.message, 'error');
         }
 
@@ -267,27 +284,28 @@ async function handleSubmit(e) {
 }
 
 function showSuccessResult(result) {
-    // ซ่อนฟอร์ม แสดงผลสำเร็จ
     document.getElementById('registrationForm').style.display = 'none';
-    document.getElementById('successResult').style.display = 'block';
+    var box = document.getElementById('successResult');
+    box.style.display = 'block';
 
     document.getElementById('resultSeq').textContent = result.seqNumber;
-    document.getElementById('resultRemaining').textContent =
-        result.remaining + ' ที่นั่ง';
+    document.getElementById('resultRemaining').textContent = result.remaining + ' ที่นั่ง';
 
+    var pdfRow = document.getElementById('resultPdfRow');
     if (result.pdfUrl && result.pdfUrl.indexOf('http') === 0) {
         document.getElementById('resultPdfLink').href = result.pdfUrl;
-        document.getElementById('resultPdfRow').style.display = 'block';
+        pdfRow.style.display = 'block';
     } else {
-        document.getElementById('resultPdfRow').style.display = 'none';
+        pdfRow.style.display = 'none';
     }
 
-    // อัพเดท stats
     if (appConfig) {
         appConfig.registered = (appConfig.registered || 0) + 1;
         appConfig.remaining = Math.max(0, (appConfig.remaining || 0) - 1);
         renderConfig(appConfig);
     }
+
+    box.scrollIntoView({ behavior: 'smooth' });
 }
 
 function resetForm() {
@@ -295,21 +313,16 @@ function resetForm() {
     document.getElementById('registrationForm').style.display = 'block';
     document.getElementById('successResult').style.display = 'none';
 
-    // Reset file previews
-    ['studentCard', 'slip'].forEach(function (id) {
+    ['studentCard', 'slip'].forEach(function(id) {
         var preview = document.getElementById(id + 'Preview');
         var placeholder = document.getElementById(id + 'Placeholder');
         var area = document.getElementById(id + 'Area');
-        preview.style.display = 'none';
-        preview.src = '';
-        placeholder.style.display = 'flex';
-        area.classList.remove('has-file');
+        if (preview) { preview.style.display = 'none'; preview.src = ''; }
+        if (placeholder) { placeholder.style.display = 'flex'; }
+        if (area) { area.classList.remove('has-file'); }
     });
 
-    // Scroll to top
     window.scrollTo({ top: 0, behavior: 'smooth' });
-
-    // โหลด config ใหม่ เช็คที่นั่ง
     loadConfig();
 }
 
@@ -328,57 +341,49 @@ async function handleCheckStatus() {
     }
 
     checkBtn.disabled = true;
-    checkBtn.textContent = '⏳ กำลังค้นหา...';
     checkBtn.classList.add('loading');
+    checkBtn.textContent = '';
 
     try {
         var params = new URLSearchParams({ action: 'checkStatus' });
         if (email) params.append('email', email);
-        if (ref)   params.append('ref', ref);
+        if (ref) params.append('ref', ref);
 
-        var url = APPS_SCRIPT_URL + '?' + params.toString();
-        var response = await fetch(url);
+        var response = await fetch(APPS_SCRIPT_URL + '?' + params.toString());
         var result = await response.json();
 
         if (result.success) {
             var reg = result.registration;
             var statusClass = 'pending';
-            var statusText = '⏳ รอตรวจสอบ';
+            var statusText = '⏳ รอตรวจสอบการชำระเงิน';
 
             if (reg.status === 'confirmed') {
                 statusClass = 'confirmed';
-                statusText = '✅ ยืนยันแล้ว';
+                statusText = '✅ ยืนยันสิทธิ์แล้ว';
             } else if (reg.status === 'rejected') {
                 statusClass = 'rejected';
-                statusText = '❌ ไม่ผ่าน';
+                statusText = '❌ ไม่ผ่านการตรวจสอบ';
             }
 
             var pdfLink = '';
             if (reg.pdfUrl && reg.pdfUrl.indexOf('http') === 0) {
                 pdfLink = '<p>📄 <a href="' + reg.pdfUrl
-                    + '" target="_blank" style="color:#2563eb;">ดาวน์โหลด PDF</a></p>';
+                    + '" target="_blank" style="color:#2563eb;font-weight:600;">ดาวน์โหลด PDF</a></p>';
             }
 
             resultDiv.innerHTML =
                 '<div class="status-card">'
                 + '<h4>📋 ข้อมูลการสมัคร</h4>'
-                + '<p><strong>ลำดับ:</strong> '
-                + '<span class="seq-badge">' + reg.seqNumber + '</span></p>'
+                + '<p><strong>ลำดับ:</strong> <span class="seq-badge">' + reg.seqNumber + '</span></p>'
                 + '<p><strong>ชื่อ:</strong> ' + reg.name + '</p>'
                 + '<p><strong>อีเมล:</strong> ' + reg.email + '</p>'
-                + '<p><strong>สถานะ:</strong> '
-                + '<span class="status-badge ' + statusClass + '">'
-                + statusText + '</span></p>'
+                + '<p><strong>สถานะ:</strong> <span class="status-badge ' + statusClass + '">' + statusText + '</span></p>'
                 + pdfLink
                 + '</div>';
             resultDiv.style.display = 'block';
-
         } else {
             resultDiv.innerHTML =
-                '<div class="status-card">'
-                + '<p style="text-align:center;color:#ef4444;">'
-                + '❌ ' + result.message + '</p>'
-                + '</div>';
+                '<div class="status-card"><p style="text-align:center;color:#ef4444;">❌ ' + result.message + '</p></div>';
             resultDiv.style.display = 'block';
         }
 
@@ -393,7 +398,7 @@ async function handleCheckStatus() {
 }
 
 // ================================================================
-// TOAST NOTIFICATION
+// TOAST
 // ================================================================
 function showToast(message, type) {
     type = type || 'error';
@@ -402,9 +407,8 @@ function showToast(message, type) {
     toast.className = 'toast ' + type;
     toast.style.display = 'block';
 
-    // ซ่อนอัตโนมัติ
     clearTimeout(window._toastTimer);
-    window._toastTimer = setTimeout(function () {
+    window._toastTimer = setTimeout(function() {
         toast.style.display = 'none';
-    }, 4000);
+    }, 5000);
 }
