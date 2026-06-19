@@ -4,72 +4,304 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>ระบบรับสมัคร</title>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Thai:wght@300;400;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
 
-    <div class="container">
-        <h1>📋 ระบบรับสมัคร</h1>
-        
-        <form id="registrationForm">
+<!-- ===== LOADING SCREEN ===== -->
+<div id="loadingScreen" class="loading-screen">
+    <div class="loader-box">
+        <div class="spinner"></div>
+        <p>กำลังโหลดข้อมูล...</p>
+    </div>
+</div>
+
+<!-- ===== MAIN CONTAINER ===== -->
+<div class="container" id="mainContainer" style="display:none;">
+
+    <!-- HEADER -->
+    <div class="header">
+        <h1 id="projectName">ระบบรับสมัคร</h1>
+        <div class="stats-bar">
+            <div class="stat-item">
+                <span class="stat-number" id="statRegistered">-</span>
+                <span class="stat-label">สมัครแล้ว</span>
+            </div>
+            <div class="stat-item">
+                <span class="stat-number" id="statRemaining">-</span>
+                <span class="stat-label">เหลือ</span>
+            </div>
+            <div class="stat-item">
+                <span class="stat-number" id="statMax">-</span>
+                <span class="stat-label">รับทั้งหมด</span>
+            </div>
+        </div>
+        <!-- Progress Bar -->
+        <div class="progress-bar-container">
+            <div class="progress-bar" id="progressBar" style="width:0%"></div>
+        </div>
+        <p class="progress-text" id="progressText">0%</p>
+    </div>
+
+    <!-- TAB NAVIGATION -->
+    <div class="tab-nav">
+        <button class="tab-btn active" data-tab="registerTab" id="tabRegisterBtn">
+            📝 สมัคร
+        </button>
+        <button class="tab-btn" data-tab="statusTab" id="tabStatusBtn">
+            🔍 เช็คสถานะ
+        </button>
+    </div>
+
+    <!-- ============================================ -->
+    <!-- TAB 1: REGISTRATION FORM -->
+    <!-- ============================================ -->
+    <div class="tab-content active" id="registerTab">
+
+        <!-- ข้อมูลค่าสมัคร -->
+        <div class="info-box" id="feeInfoBox" style="display:none;">
+            <h3>💰 ข้อมูลการชำระเงิน</h3>
+            <p><strong>ค่าสมัคร:</strong> <span id="infoFee"></span></p>
+            <p><strong>ธนาคาร:</strong> <span id="infoBankName"></span></p>
+            <p><strong>เลขบัญชี:</strong> <span id="infoAccountNumber" class="highlight"></span></p>
+            <p><strong>ชื่อบัญชี:</strong> <span id="infoAccountName"></span></p>
+        </div>
+
+        <!-- ข้อความ ปิดรับสมัคร -->
+        <div class="closed-box" id="closedBox" style="display:none;">
+            <h2>🚫 ปิดรับสมัครแล้ว</h2>
+            <p>ขออภัย ที่นั่งเต็มหรือปิดรับสมัครแล้ว</p>
+        </div>
+
+        <!-- FORM -->
+        <form id="registrationForm" style="display:none;">
             <!-- ชื่อ-นามสกุล -->
             <div class="form-group">
-                <label for="fullname">ชื่อ-นามสกุล <span class="required">*</span></label>
-                <input type="text" id="fullname" name="fullname" required 
-                       placeholder="กรอกชื่อ-นามสกุล">
+                <label for="fullName">
+                    ชื่อ-นามสกุล <span class="required">*</span>
+                </label>
+                <input type="text" id="fullName" name="fullName" required
+                       placeholder="เช่น สมชาย ใจดี">
             </div>
 
             <!-- อีเมล -->
             <div class="form-group">
-                <label for="email">อีเมล <span class="required">*</span></label>
-                <input type="email" id="email" name="email" required 
+                <label for="email">
+                    อีเมล <span class="required">*</span>
+                </label>
+                <input type="email" id="email" name="email" required
                        placeholder="example@email.com">
+            </div>
+
+            <!-- อายุ -->
+            <div class="form-group">
+                <label for="age">
+                    อายุ (ปี) <span class="required">*</span>
+                </label>
+                <input type="number" id="age" name="age" required
+                       min="10" max="99" placeholder="เช่น 16">
+            </div>
+
+            <!-- โรงเรียน -->
+            <div class="form-group">
+                <label for="school">
+                    โรงเรียน <span class="required">*</span>
+                </label>
+                <input type="text" id="school" name="school" required
+                       placeholder="ชื่อโรงเรียน">
+            </div>
+
+            <!-- จังหวัด -->
+            <div class="form-group">
+                <label for="province">
+                    จังหวัดภูมิลำเนา <span class="required">*</span>
+                </label>
+                <input type="text" id="province" name="province" required
+                       placeholder="เช่น กรุงเทพมหานคร" list="provinceList">
+                <datalist id="provinceList">
+                    <option value="กรุงเทพมหานคร">
+                    <option value="กระบี่">
+                    <option value="กาญจนบุรี">
+                    <option value="กาฬสินธุ์">
+                    <option value="กำแพงเพชร">
+                    <option value="ขอนแก่น">
+                    <option value="จันทบุรี">
+                    <option value="ฉะเชิงเทรา">
+                    <option value="ชลบุรี">
+                    <option value="ชัยนาท">
+                    <option value="ชัยภูมิ">
+                    <option value="ชุมพร">
+                    <option value="เชียงราย">
+                    <option value="เชียงใหม่">
+                    <option value="ตรัง">
+                    <option value="ตราด">
+                    <option value="ตาก">
+                    <option value="นครนายก">
+                    <option value="นครปฐม">
+                    <option value="นครพนม">
+                    <option value="นครราชสีมา">
+                    <option value="นครศรีธรรมราช">
+                    <option value="นครสวรรค์">
+                    <option value="นนทบุรี">
+                    <option value="นราธิวาส">
+                    <option value="น่าน">
+                    <option value="บึงกาฬ">
+                    <option value="บุรีรัมย์">
+                    <option value="ปทุมธานี">
+                    <option value="ประจวบคีรีขันธ์">
+                    <option value="ปราจีนบุรี">
+                    <option value="ปัตตานี">
+                    <option value="พระนครศรีอยุธยา">
+                    <option value="พะเยา">
+                    <option value="พังงา">
+                    <option value="พัทลุง">
+                    <option value="พิจิตร">
+                    <option value="พิษณุโลก">
+                    <option value="เพชรบุรี">
+                    <option value="เพชรบูรณ์">
+                    <option value="แพร่">
+                    <option value="ภูเก็ต">
+                    <option value="มหาสารคาม">
+                    <option value="มุกดาหาร">
+                    <option value="แม่ฮ่องสอน">
+                    <option value="ยโสธร">
+                    <option value="ยะลา">
+                    <option value="ร้อยเอ็ด">
+                    <option value="ระนอง">
+                    <option value="ระยอง">
+                    <option value="ราชบุรี">
+                    <option value="ลพบุรี">
+                    <option value="ลำปาง">
+                    <option value="ลำพูน">
+                    <option value="เลย">
+                    <option value="ศรีสะเกษ">
+                    <option value="สกลนคร">
+                    <option value="สงขลา">
+                    <option value="สตูล">
+                    <option value="สมุทรปราการ">
+                    <option value="สมุทรสงคราม">
+                    <option value="สมุทรสาคร">
+                    <option value="สระแก้ว">
+                    <option value="สระบุรี">
+                    <option value="สิงห์บุรี">
+                    <option value="สุโขทัย">
+                    <option value="สุพรรณบุรี">
+                    <option value="สุราษฎร์ธานี">
+                    <option value="สุรินทร์">
+                    <option value="หนองคาย">
+                    <option value="หนองบัวลำภู">
+                    <option value="อ่างทอง">
+                    <option value="อำนาจเจริญ">
+                    <option value="อุดรธานี">
+                    <option value="อุตรดิตถ์">
+                    <option value="อุทัยธานี">
+                    <option value="อุบลราชธานี">
+                </datalist>
             </div>
 
             <!-- เบอร์โทร -->
             <div class="form-group">
-                <label for="phone">เบอร์โทรศัพท์ <span class="required">*</span></label>
-                <input type="tel" id="phone" name="phone" required 
+                <label for="phone">
+                    เบอร์โทรศัพท์ <span class="required">*</span>
+                </label>
+                <input type="tel" id="phone" name="phone" required
                        placeholder="0812345678"
-                       pattern="[0-9]{10}" title="กรุณากรอกเบอร์โทร 10 หลัก">
+                       pattern="[0-9]{9,10}"
+                       title="กรุณากรอกเบอร์โทร 9-10 หลัก">
             </div>
 
-            <!-- สังกัด/หน่วยงาน -->
+            <!-- รูปบัตรนักเรียน -->
             <div class="form-group">
-                <label for="organization">สังกัด/หน่วยงาน</label>
-                <input type="text" id="organization" name="organization" 
-                       placeholder="คณะ/หน่วยงาน">
+                <label for="studentCard">
+                    📸 รูปบัตรนักเรียน/นิสิต <span class="required">*</span>
+                </label>
+                <div class="file-upload-area" id="studentCardArea">
+                    <input type="file" id="studentCard" accept="image/*" required
+                           class="file-input">
+                    <div class="file-placeholder" id="studentCardPlaceholder">
+                        <span class="file-icon">🖼️</span>
+                        <span>คลิกเพื่อเลือกรูป หรือลากไฟล์มาวาง</span>
+                        <span class="file-hint">รองรับ JPG, PNG (ไม่เกิน 5MB)</span>
+                    </div>
+                    <img id="studentCardPreview" class="file-preview" style="display:none;">
+                </div>
             </div>
 
-            <!-- ตำแหน่ง -->
+            <!-- รูปสลิป -->
             <div class="form-group">
-                <label for="position">ตำแหน่ง</label>
-                <select id="position" name="position">
-                    <option value="">-- เลือกตำแหน่ง --</option>
-                    <option value="นิสิต">นิสิต</option>
-                    <option value="อาจารย์">อาจารย์</option>
-                    <option value="เจ้าหน้าที่">เจ้าหน้าที่</option>
-                    <option value="บุคคลภายนอก">บุคคลภายนอก</option>
-                </select>
-            </div>
-
-            <!-- หมายเหตุ -->
-            <div class="form-group">
-                <label for="note">หมายเหตุ</label>
-                <textarea id="note" name="note" rows="3" 
-                          placeholder="ข้อมูลเพิ่มเติม (ถ้ามี)"></textarea>
+                <label for="slip">
+                    🧾 รูปสลิปโอนเงิน <span class="required">*</span>
+                </label>
+                <div class="file-upload-area" id="slipArea">
+                    <input type="file" id="slip" accept="image/*" required
+                           class="file-input">
+                    <div class="file-placeholder" id="slipPlaceholder">
+                        <span class="file-icon">🧾</span>
+                        <span>คลิกเพื่อเลือกรูป หรือลากไฟล์มาวาง</span>
+                        <span class="file-hint">รองรับ JPG, PNG (ไม่เกิน 5MB)</span>
+                    </div>
+                    <img id="slipPreview" class="file-preview" style="display:none;">
+                </div>
             </div>
 
             <!-- ปุ่มส่ง -->
-            <button type="submit" id="submitBtn">
+            <button type="submit" id="submitBtn" class="btn-submit">
                 ✅ ส่งใบสมัคร
             </button>
         </form>
 
-        <!-- แสดงผลลัพธ์ -->
-        <div id="result" class="result" style="display:none;"></div>
+        <!-- ผลลัพธ์สมัครสำเร็จ -->
+        <div id="successResult" class="success-box" style="display:none;">
+            <div class="success-icon">🎉</div>
+            <h2>สมัครสำเร็จ!</h2>
+            <div class="success-details">
+                <p>ลำดับการสมัคร: <strong id="resultSeq" class="seq-badge"></strong></p>
+                <p>ที่นั่งคงเหลือ: <strong id="resultRemaining"></strong></p>
+                <p id="resultPdfRow">
+                    📄 เอกสารยืนยัน:
+                    <a id="resultPdfLink" href="#" target="_blank">ดาวน์โหลด PDF</a>
+                </p>
+            </div>
+            <p class="success-note">📧 ระบบส่ง Email ยืนยันให้แล้ว กรุณาตรวจสอบ</p>
+            <button class="btn-secondary" onclick="resetForm()">
+                สมัครคนถัดไป
+            </button>
+        </div>
     </div>
 
-    <script src="script.js"></script>
+    <!-- ============================================ -->
+    <!-- TAB 2: CHECK STATUS -->
+    <!-- ============================================ -->
+    <div class="tab-content" id="statusTab">
+        <div class="status-form">
+            <h3>🔍 ตรวจสอบสถานะการสมัคร</h3>
+            <p class="text-muted">ค้นหาด้วยอีเมล หรือ เลขที่สมัคร</p>
+
+            <div class="form-group">
+                <label for="checkEmail">อีเมล</label>
+                <input type="email" id="checkEmail" placeholder="example@email.com">
+            </div>
+            <div class="divider-or">หรือ</div>
+            <div class="form-group">
+                <label for="checkRef">เลขที่สมัคร</label>
+                <input type="text" id="checkRef" placeholder="เช่น 0001">
+            </div>
+
+            <button class="btn-submit" id="checkStatusBtn" onclick="handleCheckStatus()">
+                🔍 ค้นหา
+            </button>
+        </div>
+
+        <!-- ผลลัพธ์ -->
+        <div id="statusResult" style="display:none;"></div>
+    </div>
+
+</div>
+
+<!-- ERROR Toast -->
+<div id="toast" class="toast" style="display:none;"></div>
+
+<script src="script.js"></script>
 </body>
 </html>
